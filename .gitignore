@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Backend
+backend/.env
+backend/db.sqlite3
+backend/test.db
+backend/.pytest_cache/
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+backend/storage/uploads/versions/*
+!backend/storage/uploads/versions/.gitkeep
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Testing
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Backups
+backups/
+*.sql
+*_backup.*
