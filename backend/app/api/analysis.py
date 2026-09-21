@@ -547,3 +547,115 @@ Keep it concise and focused on actionable insights."""
         pass
 
     return {"analysis": ai_response, "sheet_name": sheet_name}
+
+
+@router.post("/{file_id}/quick-analysis")
+def quick_analysis(
+    file_id: str,
+    body: ChatRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Single AI call that returns summary, insights, and charts at once."""
+    db_file = (
+        db.query(FileModel)
+        .filter(FileModel.id == file_id, FileModel.user_id == current_user.id)
+        .first()
+    )
+    if not db_file:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Use frontend data if provided
+    if body.columns and body.rows and len(body.columns) > 0 and len(body.rows) > 0:
+        df = pd.DataFrame(body.rows, columns=body.columns)
+        col_types = {}
+        for col in df.columns:
+            if pd.api.types.is_numeric_dtype(df[col]):
+                col_types[col] = "numeric"
+            elif pd.api.types.is_datetime64_any_dtype(df[col]):
+                col_types[col] = "date"
+            elif df[col].nunique() < min(len(df) * 0.5, 20):
+                col_types[col] = "categorical"
+            else:
+                col_types[col] = "text"
+        sheet_name = body.sheet_name or "Sheet1"
+    else:
+        df, col_types, sheet_name, _ = _load_dataframe(db_file, body.sheet_name)
+        if df is None:
+            raise HTTPException(status_code=400, detail="Could not load worksheet")
+
+    statistics = calculate_statistics(df)
+    context = build_rich_context(
+        df=df,
+        column_types=col_types,
+        statistics=statistics,
+        file_info={"filename": db_file.original_filename, "sheet_name": sheet_name},
+    )
+
+    prompt = """Analyze this dataset and return a JSON response with EXACTLY this structure (no markdown, no code fences, just raw JSON):
+
+{
+  "summary": "3-5 sentence natural language summary of what the data shows. Focus on patterns, key values, trends. Do NOT mention row/column counts.",
+  "insights": [
+    "insight 1 - most important finding",
+    "insight 2 - second finding",
+    "insight 3 - third finding",
+    "insight 4 - fourth finding",
+    "insight 5 - fifth finding"
+  ],
+  "charts": [
+    {
+      "chart_type": "bar",
+      "title": "chart title",
+      "x_column": "ColumnName",
+      "y_column": "ColumnName",
+      "aggregation": "count"
+    }
+  ]
+}
+
+Chart rules:
+- If categorical data exists: bar chart of value counts
+- If a category represents parts of a whole (e.g. status): pie chart
+- If date/time column exists with numeric data: line chart of trend
+- If numeric columns with potential correlation: scatter chart
+- Generate 2-4 relevant charts based on the actual data
+- Use "aggregation": "count" for categorical, "sum" or "mean" for numeric
+- Return ONLY valid JSON, nothing else"""
+
+    ai_response = call_ai_api(context, prompt, [], user_id=current_user.id, file_id=db_file.id)
+
+    # Parse JSON from response
+    import json
+    try:
+        # Try to extract JSON from response
+        json_match = re.search(r'\{[\s\S]*\}', ai_response)
+        if json_match:
+            result = json.loads(json_match.group())
+        else:
+            result = {"summary": ai_response, "insights": [], "charts": []}
+    except json.JSONDecodeError:
+        result = {"summary": ai_response, "insights": [], "charts": []}
+
+    # Generate charts using the chart service
+    charts_data = []
+    for chart_req in result.get("charts", []):
+        try:
+            chart_result = generate_inline_charts(
+                columns=list(df.columns),
+                rows=df.values.tolist(),
+                chart_type=chart_req.get("chart_type"),
+                x_column=chart_req.get("x_column"),
+                y_column=chart_req.get("y_column"),
+                aggregation=chart_req.get("aggregation"),
+            )
+            if chart_result.get("suggestions"):
+                charts_data.extend(chart_result["suggestions"][:2])
+        except Exception:
+            pass
+
+    return {
+        "summary": result.get("summary", ""),
+        "insights": result.get("insights", []),
+        "charts": charts_data[:4],
+    }

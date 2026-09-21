@@ -98,6 +98,8 @@ export const analysisAPI = {
     api.post(`/api/analysis/${fileId}/chat`, { content, sheet_name: sheetName, columns, rows, dataset_version: datasetVersion }),
   autoAnalyze: (fileId: string) =>
     api.post(`/api/analysis/${fileId}/analyze`),
+  quickAnalysis: (fileId: string, columns: string[], rows: unknown[][], sheetName?: string) =>
+    api.post(`/api/analysis/${fileId}/quick-analysis`, { content: "analyze", columns, rows, sheet_name: sheetName }),
 };
 
 // History

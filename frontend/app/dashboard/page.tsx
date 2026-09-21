@@ -13,9 +13,7 @@ import {
 import Sidebar from "@/components/Sidebar";
 import FileUpload from "@/components/FileUpload";
 import ExcelEditor from "@/components/ExcelEditor";
-import AISummary from "@/components/AISummary";
-import RelevantCharts from "@/components/RelevantCharts";
-import KeyInsights from "@/components/KeyInsights";
+import AIPanel from "@/components/AIPanel";
 import ParticleDrift from "@/components/ui/particle-drift";
 import { filesAPI, historyAPI } from "@/lib/api";
 import { FileItem } from "@/types";
@@ -285,22 +283,12 @@ function DashboardContent() {
 
                 {/* Right: AI Analysis Panel */}
                 <div className="w-96 flex flex-col overflow-hidden bg-gray-900/50">
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    <AISummary
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <AIPanel
                       fileId={file.id}
                       columns={currentColumns}
                       rows={currentRows}
                       datasetVersion={datasetVersion}
-                    />
-                    <RelevantCharts
-                      fileId={file.id}
-                      columns={currentColumns}
-                      rows={currentRows}
-                    />
-                    <KeyInsights
-                      fileId={file.id}
-                      columns={currentColumns}
-                      rows={currentRows}
                     />
                   </div>
                 </div>
