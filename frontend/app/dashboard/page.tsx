@@ -142,7 +142,7 @@ function DashboardContent() {
         filesAPI.charts(id, sheet),
       ]);
       setStats(statsRes.data);
-      setCharts(chartsRes.data);
+      setCharts(chartsRes.data.charts || []);
     } catch {
       // silently fail
     }
