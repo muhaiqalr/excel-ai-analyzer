@@ -51,3 +51,6 @@ coverage.xml
 backups/
 *.sql
 *_backup.*
+
+# Local Netlify folder
+.netlify
