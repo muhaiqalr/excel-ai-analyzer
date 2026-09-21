@@ -5,7 +5,7 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { BarChart3, Loader2, RefreshCw } from "lucide-react";
+import { BarChart3, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { analysisAPI } from "@/lib/api";
 
 interface ChartData {
@@ -79,6 +79,7 @@ function MiniChart({ chart }: { chart: ChartData }) {
 export default function RelevantCharts({ fileId, columns, rows }: Props) {
   const [charts, setCharts] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const generateCharts = useCallback(async () => {
     if (columns.length === 0 || rows.length === 0) {
@@ -86,12 +87,15 @@ export default function RelevantCharts({ fileId, columns, rows }: Props) {
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const res = await analysisAPI.calculateCharts(columns, rows);
       const suggestions = res.data.suggestions || [];
       setCharts(suggestions.slice(0, 4));
-    } catch {
-      setCharts([]);
+    } catch (err: unknown) {
+      console.error("Charts error:", err);
+      const msg = err instanceof Error ? err.message : "Unable to generate charts.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -125,6 +129,11 @@ export default function RelevantCharts({ fileId, columns, rows }: Props) {
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <Loader2 className="w-3 h-3 animate-spin" />
           Generating charts...
+        </div>
+      ) : error ? (
+        <div className="flex items-start gap-2 text-xs text-red-400">
+          <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+          <span>{error}</span>
         </div>
       ) : charts.length > 0 ? (
         <div className="space-y-3">

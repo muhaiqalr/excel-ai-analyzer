@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { analysisAPI } from "@/lib/api";
 
 interface Props {
@@ -14,6 +14,7 @@ interface Props {
 export default function AISummary({ fileId, columns, rows, datasetVersion }: Props) {
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const generateSummary = useCallback(async () => {
     if (columns.length === 0 || rows.length === 0) {
@@ -21,6 +22,7 @@ export default function AISummary({ fileId, columns, rows, datasetVersion }: Pro
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const res = await analysisAPI.chat(
         fileId,
@@ -31,8 +33,10 @@ export default function AISummary({ fileId, columns, rows, datasetVersion }: Pro
         datasetVersion
       );
       setSummary(res.data.content);
-    } catch {
-      setSummary("Unable to generate summary. Please try again.");
+    } catch (err: unknown) {
+      console.error("AI Summary error:", err);
+      const msg = err instanceof Error ? err.message : "Unable to generate summary.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -66,6 +70,11 @@ export default function AISummary({ fileId, columns, rows, datasetVersion }: Pro
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <Loader2 className="w-3 h-3 animate-spin" />
           Analyzing data...
+        </div>
+      ) : error ? (
+        <div className="flex items-start gap-2 text-xs text-red-400">
+          <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+          <span>{error}</span>
         </div>
       ) : summary ? (
         <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">{summary}</p>

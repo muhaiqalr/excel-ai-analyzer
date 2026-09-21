@@ -109,13 +109,14 @@ export default function ExcelEditor({
         historyManager.clear();
         setUndoCount(0);
         setRedoCount(0);
+        onDataChanged?.({ columns: [...res.data.columns], rows: rows.map((r: CellValue[]) => [...r]) });
       } catch {
         setError("Failed to load spreadsheet data.");
       } finally {
         setLoading(false);
       }
     },
-    [fileId, onUnsavedChange, historyManager]
+    [fileId, onUnsavedChange, historyManager, onDataChanged]
   );
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Lightbulb, Loader2, RefreshCw } from "lucide-react";
+import { Lightbulb, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { analysisAPI } from "@/lib/api";
 
 interface Insight {
@@ -17,6 +17,7 @@ interface Props {
 export default function KeyInsights({ fileId, columns, rows }: Props) {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const generateInsights = useCallback(async () => {
     if (columns.length === 0 || rows.length === 0) {
@@ -24,6 +25,7 @@ export default function KeyInsights({ fileId, columns, rows }: Props) {
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const res = await analysisAPI.chat(
         fileId,
@@ -35,8 +37,10 @@ export default function KeyInsights({ fileId, columns, rows }: Props) {
       const lines = res.data.content.split("\n").filter((l: string) => l.trim().startsWith("-"));
       const parsed = lines.map((line: string) => ({ text: line.replace(/^-\s*/, "").trim() })).filter((i: Insight) => i.text.length > 0);
       setInsights(parsed.slice(0, 5));
-    } catch {
-      setInsights([]);
+    } catch (err: unknown) {
+      console.error("Key Insights error:", err);
+      const msg = err instanceof Error ? err.message : "Unable to generate insights.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -70,6 +74,11 @@ export default function KeyInsights({ fileId, columns, rows }: Props) {
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <Loader2 className="w-3 h-3 animate-spin" />
           Finding insights...
+        </div>
+      ) : error ? (
+        <div className="flex items-start gap-2 text-xs text-red-400">
+          <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+          <span>{error}</span>
         </div>
       ) : insights.length > 0 ? (
         <ul className="space-y-2">
