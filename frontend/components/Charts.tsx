@@ -37,11 +37,12 @@ const COLORS = [
 ];
 
 function ChartCard({ chart }: { chart: ChartConfig }) {
-  const { config } = chart;
-  const data = config.data;
+  const config = chart.config || chart as ChartConfig["config"];
+  const data = chart.config?.data || (chart as Record<string, unknown>).data || [];
 
   function renderChart() {
-    switch (config.chart_type) {
+    const chartType = chart.config?.chart_type || chart.chart_type;
+    switch (chartType) {
       case "bar":
         return (
           <ResponsiveContainer width="100%" height={250}>
@@ -165,11 +166,11 @@ function ChartCard({ chart }: { chart: ChartConfig }) {
 
   return (
     <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
-      <h4 className="text-sm font-medium text-white mb-3">{config.title}</h4>
+      <h4 className="text-sm font-medium text-white mb-3">{config?.title || chart.title}</h4>
       {renderChart()}
-      {config.x_column && config.y_column && (
+      {(config?.x_column || chart.x_column) && (config?.y_column || chart.y_column) && (
         <p className="text-xs text-gray-500 mt-2">
-          X: {config.x_column} | Y: {config.y_column}
+          X: {config?.x_column || chart.x_column} | Y: {config?.y_column || chart.y_column}
         </p>
       )}
     </div>
@@ -195,8 +196,8 @@ export default function Charts({ charts, loading }: Props) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
-      {charts.map((chart) => (
-        <ChartCard key={chart.id} chart={chart} />
+      {charts.map((chart, idx) => (
+        <ChartCard key={chart.id || `${chart.chart_type}-${idx}`} chart={chart} />
       ))}
     </div>
   );
