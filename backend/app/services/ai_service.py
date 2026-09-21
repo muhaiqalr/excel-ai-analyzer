@@ -82,9 +82,10 @@ def build_rich_context(
         parts.append("")
 
     if df is not None and len(df) > 0:
-        parts.append("=== SAMPLE DATA (first 10 rows) ===")
-        sample_df = df.head(10)
-        parts.append(sample_df.to_string(index=False))
+        parts.append("=== FULL DATASET CONTENT ===")
+        parts.append(f"Showing all {len(df)} rows and {len(df.columns)} columns:")
+        parts.append("")
+        parts.append(df.to_string(index=False, max_rows=None, max_cols=None))
         parts.append("")
 
         parts.append("=== ALL COLUMN NAMES ===")
@@ -137,8 +138,10 @@ def build_automatic_analysis(
         parts.append("")
 
     if df is not None and len(df) > 0:
-        parts.append("=== SAMPLE DATA (first 5 rows) ===")
-        parts.append(df.head(5).to_string(index=False))
+        parts.append("=== FULL DATASET CONTENT ===")
+        parts.append(f"Showing all {len(df)} rows:")
+        parts.append("")
+        parts.append(df.to_string(index=False, max_rows=None, max_cols=None))
         parts.append("")
 
     return "\n".join(parts)
@@ -236,7 +239,7 @@ def call_ai_api(
             "temperature": 0.7,
             "topP": 0.95,
             "topK": 40,
-            "maxOutputTokens": 4096,
+            "maxOutputTokens": 8192,
         },
     }
 
