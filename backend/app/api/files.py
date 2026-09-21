@@ -257,7 +257,7 @@ def get_file_data(
     file_id: str,
     sheet_name: str = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=500),
+    page_size: int = Query(50, ge=1, le=2000),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

@@ -68,6 +68,11 @@ def on_startup():
     logger.info("Application started")
 
 
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "Excel AI Analyzer API"}
+
+
 @app.get("/api/health")
 def health_check():
     db_ok = False
