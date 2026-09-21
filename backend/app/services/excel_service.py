@@ -3,6 +3,23 @@ import os
 import pandas as pd
 from pathlib import Path
 
+_df_cache: dict[tuple, pd.DataFrame] = {}
+
+
+def _get_cached_df(filepath: str, sheet_name: str) -> pd.DataFrame:
+    mtime = os.path.getmtime(filepath)
+    key = (filepath, sheet_name, mtime)
+    if key not in _df_cache:
+        ext = Path(filepath).suffix.lower()
+        if ext == ".csv":
+            df = pd.read_csv(filepath)
+        else:
+            df = pd.read_excel(filepath, sheet_name=sheet_name)
+        df = df.fillna("")
+        _df_cache.clear()
+        _df_cache[key] = df
+    return _df_cache[key]
+
 
 def parse_excel(filepath: str) -> dict:
     ext = Path(filepath).suffix.lower()
@@ -184,14 +201,7 @@ def analyze_sheet(filepath: str, sheet_name: str) -> dict:
 def read_excel_data(
     filepath: str, sheet_name: str, page: int, page_size: int
 ) -> dict:
-    ext = Path(filepath).suffix.lower()
-
-    if ext == ".csv":
-        df = pd.read_csv(filepath)
-    else:
-        df = pd.read_excel(filepath, sheet_name=sheet_name)
-
-    df = df.fillna("")
+    df = _get_cached_df(filepath, sheet_name)
 
     total_rows = len(df)
     total_pages = math.ceil(total_rows / page_size) if total_rows > 0 else 1
@@ -224,6 +234,7 @@ def read_excel_data(
 
 
 def save_excel_data(filepath: str, changes: list, sheet_name: str = None, structural: list = None) -> None:
+    _df_cache.clear()
     ext = Path(filepath).suffix.lower()
 
     if ext == ".csv":

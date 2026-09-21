@@ -267,8 +267,10 @@ def get_file_data(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on disk")
 
     if not sheet_name:
-        parsed = parse_excel(db_file.file_path)
-        sheet_name = parsed["sheets"][0]["name"] if parsed.get("sheets") else "Sheet1"
+        if db_file.sheets:
+            sheet_name = db_file.sheets[0].sheet_name
+        else:
+            sheet_name = "Sheet1"
 
     try:
         data = read_excel_data(db_file.file_path, sheet_name, page, page_size)
