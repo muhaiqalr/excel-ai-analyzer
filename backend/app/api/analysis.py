@@ -393,29 +393,14 @@ def chat_with_data(
     if not db_file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    if body.columns and body.rows is not None:
-        df = pd.DataFrame(body.rows, columns=body.columns) if body.columns else pd.DataFrame()
-        col_types = {}
-        for col in body.columns:
-            if df[col].dtype in ("int64", "float64"):
-                col_types[col] = "numeric"
-            elif df[col].dtype == "bool":
-                col_types[col] = "boolean"
-            else:
-                col_types[col] = "categorical"
-        sheet_name = body.sheet_name or "Sheet1"
-        file_info = {
-            "filename": db_file.original_filename,
-            "sheet_name": sheet_name,
-        }
-    else:
-        df, col_types, sheet_name, parsed = _load_dataframe(db_file, body.sheet_name)
-        if df is None:
-            raise HTTPException(status_code=400, detail="Could not load worksheet")
-        file_info = {
-            "filename": db_file.original_filename,
-            "sheet_name": sheet_name,
-        }
+    # Always load full data directly from the Excel file for accurate AI analysis
+    df, col_types, sheet_name, parsed = _load_dataframe(db_file, body.sheet_name)
+    if df is None:
+        raise HTTPException(status_code=400, detail="Could not load worksheet")
+    file_info = {
+        "filename": db_file.original_filename,
+        "sheet_name": sheet_name,
+    }
 
     statistics = calculate_statistics(df)
     full_stats = calculate_full_statistics(df)
