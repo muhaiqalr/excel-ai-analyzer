@@ -49,14 +49,6 @@ function DashboardContent() {
   }, [fileId]);
 
   useEffect(() => {
-    return () => {
-      if (window.__unsavedWarning) {
-        window.removeEventListener("beforeunload", window.__unsavedWarning);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     function handleBeforeUnload(e: BeforeUnloadEvent) {
       if (hasUnsavedChanges) {
         e.preventDefault();
@@ -64,7 +56,6 @@ function DashboardContent() {
       }
     }
     window.addEventListener("beforeunload", handleBeforeUnload);
-    (window as Record<string, unknown>).__unsavedWarning = handleBeforeUnload;
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
