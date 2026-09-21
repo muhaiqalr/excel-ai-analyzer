@@ -48,7 +48,7 @@ export default function KeyInsights({ fileId, columns, rows }: Props) {
 
   useEffect(() => {
     if (columns.length > 0 && rows.length > 0) {
-      const timeout = setTimeout(generateInsights, 2000);
+      const timeout = setTimeout(generateInsights, 500);
       return () => clearTimeout(timeout);
     }
   }, [columns, rows, generateInsights]);

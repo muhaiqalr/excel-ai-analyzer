@@ -393,23 +393,40 @@ def chat_with_data(
     if not db_file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    # Always load full data directly from the Excel file for accurate AI analysis
-    df, col_types, sheet_name, parsed = _load_dataframe(db_file, body.sheet_name)
-    if df is None:
-        raise HTTPException(status_code=400, detail="Could not load worksheet")
-    file_info = {
-        "filename": db_file.original_filename,
-        "sheet_name": sheet_name,
-    }
+    # Use frontend data if provided (much faster - avoids file I/O)
+    if body.columns and body.rows and len(body.columns) > 0 and len(body.rows) > 0:
+        df = pd.DataFrame(body.rows, columns=body.columns)
+        col_types = {}
+        for col in df.columns:
+            if pd.api.types.is_numeric_dtype(df[col]):
+                col_types[col] = "numeric"
+            elif pd.api.types.is_datetime64_any_dtype(df[col]):
+                col_types[col] = "date"
+            elif df[col].nunique() < min(len(df) * 0.5, 20):
+                col_types[col] = "categorical"
+            else:
+                col_types[col] = "text"
+        sheet_name = body.sheet_name or "Sheet1"
+        file_info = {
+            "filename": db_file.original_filename,
+            "sheet_name": sheet_name,
+        }
+    else:
+        # Fallback: load from file
+        df, col_types, sheet_name, parsed = _load_dataframe(db_file, body.sheet_name)
+        if df is None:
+            raise HTTPException(status_code=400, detail="Could not load worksheet")
+        file_info = {
+            "filename": db_file.original_filename,
+            "sheet_name": sheet_name,
+        }
 
     statistics = calculate_statistics(df)
-    full_stats = calculate_full_statistics(df)
 
     context = build_rich_context(
         df=df,
         column_types=col_types,
         statistics=statistics,
-        full_stats=full_stats,
         file_info=file_info,
     )
 
@@ -440,7 +457,7 @@ def chat_with_data(
             dataset_version=db_file.dataset_version,
             question=body.content,
             response=ai_response_text,
-            statistics={"full_statistics": full_stats},
+            statistics={"statistics": statistics},
             charts={"chart_request": chart_request} if chart_request else None,
             dataset_snapshot=dataset_snapshot,
         )

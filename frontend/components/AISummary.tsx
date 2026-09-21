@@ -44,7 +44,7 @@ export default function AISummary({ fileId, columns, rows, datasetVersion }: Pro
 
   useEffect(() => {
     if (columns.length > 0 && rows.length > 0) {
-      const timeout = setTimeout(generateSummary, 1500);
+      const timeout = setTimeout(generateSummary, 500);
       return () => clearTimeout(timeout);
     }
   }, [columns, rows, datasetVersion, generateSummary]);

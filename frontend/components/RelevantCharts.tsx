@@ -103,7 +103,7 @@ export default function RelevantCharts({ fileId, columns, rows }: Props) {
 
   useEffect(() => {
     if (columns.length > 0 && rows.length > 0) {
-      const timeout = setTimeout(generateCharts, 1000);
+      const timeout = setTimeout(generateCharts, 500);
       return () => clearTimeout(timeout);
     }
   }, [columns, rows, generateCharts]);
