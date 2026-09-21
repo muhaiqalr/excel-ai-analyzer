@@ -1,5 +1,4 @@
 import httpx
-import json
 import pandas as pd
 from typing import Optional
 
@@ -16,80 +15,18 @@ def build_rich_context(
     parts = []
 
     if file_info:
-        parts.append("=== FILE INFORMATION ===")
-        parts.append(f"File: {file_info.get('filename', 'Unknown')}")
-        parts.append(f"Worksheet: {file_info.get('sheet_name', 'Unknown')}")
+        parts.append(f"File: {file_info.get('filename', 'Unknown')} | Sheet: {file_info.get('sheet_name', 'Unknown')}")
         parts.append("")
 
-    overview = full_stats.get("overview", {}) if full_stats else {}
-    parts.append("=== DATASET OVERVIEW ===")
-    parts.append(f"Total rows: {statistics.get('total_rows', overview.get('total_rows', 0))}")
-    parts.append(f"Total columns: {statistics.get('total_columns', overview.get('total_columns', 0))}")
-    parts.append(f"Total cells: {overview.get('total_cells', 0)}")
-    parts.append(f"Missing cells: {overview.get('missing_cells', 0)} ({overview.get('missing_percentage', 0)}%)")
-    parts.append(f"Numeric columns: {overview.get('numeric_columns', 0)}")
-    parts.append(f"Text columns: {overview.get('text_columns', 0)}")
-    parts.append(f"Date columns: {overview.get('date_columns', 0)}")
-    parts.append(f"Categorical columns: {overview.get('categorical_columns', 0)}")
-    parts.append("")
-
-    parts.append("=== COLUMN DETAILS ===")
+    parts.append("=== COLUMNS ===")
     for col_name, col_stat in statistics.get("columns", {}).items():
         col_type = column_types.get(col_name, col_stat.get("type", "unknown"))
-        parts.append(f"Column '{col_name}' (type: {col_type}):")
-
-        if col_type == "numeric":
-            for key in ["count", "sum", "mean", "median", "min", "max", "std", "variance", "range", "q1", "q3", "iqr", "missing_count", "missing_pct"]:
-                if key in col_stat:
-                    parts.append(f"  {key}: {col_stat[key]}")
-        elif col_type in ("categorical", "text"):
-            for key in ["count", "unique_count", "most_common", "most_common_count", "missing_count", "missing_pct"]:
-                if key in col_stat:
-                    parts.append(f"  {key}: {col_stat[key]}")
-            freq = col_stat.get("frequency_distribution")
-            if freq:
-                parts.append(f"  Top values: {json.dumps(dict(list(freq.items())[:8]))}")
-        elif col_type == "date":
-            for key in ["count", "earliest", "latest", "range_days", "missing_count", "missing_pct"]:
-                if key in col_stat:
-                    parts.append(f"  {key}: {col_stat[key]}")
-        elif col_type == "boolean":
-            for key in ["count", "true_count", "false_count", "true_pct", "missing_count", "missing_pct"]:
-                if key in col_stat:
-                    parts.append(f"  {key}: {col_stat[key]}")
-        parts.append("")
-
-    correlation = full_stats.get("correlation", {}) if full_stats else {}
-    if correlation.get("strong_correlations"):
-        parts.append("=== STRONG CORRELATIONS ===")
-        for c in correlation["strong_correlations"]:
-            parts.append(f"  {c['column1']} <-> {c['column2']}: r={c['correlation']} ({c['strength']})")
-        parts.append("")
-
-    outliers = full_stats.get("outliers", {}) if full_stats else {}
-    outlier_cols = {k: v for k, v in outliers.items() if v.get("outlier_count", 0) > 0}
-    if outlier_cols:
-        parts.append("=== OUTLIERS DETECTED ===")
-        for col, info in outlier_cols.items():
-            parts.append(f"  {col}: {info['outlier_count']} outliers ({info['outlier_percentage']}%), bounds: [{info['lower_bound']}, {info['upper_bound']}]")
-        parts.append("")
-
-    insights = full_stats.get("insights", []) if full_stats else []
-    if insights:
-        parts.append("=== KEY INSIGHTS ===")
-        for insight in insights[:8]:
-            parts.append(f"  [{insight['type']}] {insight['title']}: {insight['message']}")
-        parts.append("")
+        parts.append(f"- {col_name} ({col_type})")
+    parts.append("")
 
     if df is not None and len(df) > 0:
-        parts.append("=== FULL DATASET CONTENT ===")
-        parts.append(f"Showing all {len(df)} rows and {len(df.columns)} columns:")
-        parts.append("")
+        parts.append("=== FULL DATA ===")
         parts.append(df.to_string(index=False, max_rows=None, max_cols=None))
-        parts.append("")
-
-        parts.append("=== ALL COLUMN NAMES ===")
-        parts.append(", ".join(df.columns.tolist()))
         parts.append("")
 
     return "\n".join(parts)
@@ -103,98 +40,87 @@ def build_automatic_analysis(
 ) -> str:
     parts = []
 
-    overview = full_stats.get("overview", {}) if full_stats else {}
-    parts.append("=== DATASET OVERVIEW ===")
-    parts.append(f"Total rows: {statistics.get('total_rows', overview.get('total_rows', 0))}")
-    parts.append(f"Total columns: {statistics.get('total_columns', overview.get('total_columns', 0))}")
-    parts.append(f"Total cells: {overview.get('total_cells', 0)}")
-    parts.append(f"Missing cells: {overview.get('missing_cells', 0)} ({overview.get('missing_percentage', 0)}%)")
+    parts.append("=== DATA CONTENT ===")
+    parts.append(f"Columns: {', '.join(df.columns.tolist()) if df is not None else 'None'}")
     parts.append("")
 
-    parts.append("=== COLUMN STATISTICS ===")
+    parts.append("=== COLUMN SUMMARY ===")
     for col_name, col_stat in statistics.get("columns", {}).items():
         col_type = column_types.get(col_name, col_stat.get("type", "unknown"))
         if col_type == "numeric" and col_stat.get("count", 0) > 0:
-            parts.append(f"{col_name}: min={col_stat.get('min')}, max={col_stat.get('max')}, mean={col_stat.get('mean')}, median={col_stat.get('median')}, std={col_stat.get('std')}")
+            parts.append(f"{col_name}: min={col_stat.get('min')}, max={col_stat.get('max')}, mean={col_stat.get('mean')}")
         elif col_type in ("categorical", "text") and col_stat.get("count", 0) > 0:
-            parts.append(f"{col_name}: {col_stat.get('unique_count', 0)} unique values, most common='{col_stat.get('most_common', '')}' ({col_stat.get('most_common_count', 0)} times)")
+            parts.append(f"{col_name}: most common='{col_stat.get('most_common', '')}' ({col_stat.get('most_common_count', 0)} times), {col_stat.get('unique_count', 0)} unique values")
         elif col_type == "date" and col_stat.get("count", 0) > 0:
-            parts.append(f"{col_name}: range from {col_stat.get('earliest', '')} to {col_stat.get('latest', '')} ({col_stat.get('range_days', 0)} days)")
+            parts.append(f"{col_name}: from {col_stat.get('earliest', '')} to {col_stat.get('latest', '')}")
     parts.append("")
-
-    correlation = full_stats.get("correlation", {}) if full_stats else {}
-    if correlation.get("strong_correlations"):
-        parts.append("=== STRONG CORRELATIONS ===")
-        for c in correlation["strong_correlations"]:
-            parts.append(f"  {c['column1']} <-> {c['column2']}: r={c['correlation']} ({c['strength']})")
-        parts.append("")
-
-    outliers = full_stats.get("outliers", {}) if full_stats else {}
-    outlier_cols = {k: v for k, v in outliers.items() if v.get("outlier_count", 0) > 0}
-    if outlier_cols:
-        parts.append("=== OUTLIERS ===")
-        for col, info in outlier_cols.items():
-            parts.append(f"  {col}: {info['outlier_count']} outliers ({info['outlier_percentage']}%)")
-        parts.append("")
 
     if df is not None and len(df) > 0:
         parts.append("=== FULL DATASET CONTENT ===")
-        parts.append(f"Showing all {len(df)} rows:")
-        parts.append("")
         parts.append(df.to_string(index=False, max_rows=None, max_cols=None))
         parts.append("")
 
     return "\n".join(parts)
 
 
-SYSTEM_PROMPT = """You are an expert data analyst AI assistant for an Excel/CSV analysis application.
+SYSTEM_PROMPT = """You are an expert data analyst AI assistant. Your job is to analyze the ACTUAL DATA provided and give meaningful insights.
 
 CRITICAL RULES:
 1. You MUST ONLY use data from the dataset context provided. NEVER invent, fabricate, or guess numbers.
 2. If a value is not in the data context, say "I don't have that information in the current dataset."
-3. Always reference specific numbers when answering questions about the data.
-4. Distinguish between calculated facts and your interpretation.
-5. Avoid claiming causation from correlation. Say "correlated with" not "caused by."
-6. Respond in the SAME LANGUAGE the user uses (English or Bahasa Melayu).
-7. Be concise but thorough. Use bullet points for lists.
-8. If the user asks to create a chart, respond with a JSON chart configuration in this exact format:
-   CHART_REQUEST:{"chart_type":"bar","x_column":"ColumnName","y_column":"ColumnName","aggregation":"sum"}
-   Supported chart types: bar, line, pie, scatter, doughnut, area
-   Supported aggregations: sum, mean, count, min, max
-9. If you need more data to answer a question, explain what information you need.
-10. For the "Analyze Dataset" request, provide a structured analysis covering:
-    - Dataset Overview
-    - Key Statistics for each column
-    - Important Trends
-    - Highest/Lowest Values
-    - Missing Data Analysis
-    - Outliers
-    - Correlations
-    - Key Insights
-    - Areas requiring attention
+3. Always reference specific numbers and values from the actual data.
+4. Respond in the SAME LANGUAGE the user uses (English or Bahasa Melayu).
+5. Be concise but thorough. Use bullet points for lists.
+6. Focus on WHAT THE DATA SHOWS, not on spreadsheet technicalities.
 
-You have access to these data analysis capabilities (use them when the user's question requires specific calculations):
-- sum(column): Calculate sum of a numeric column
-- average(column): Calculate average of a numeric column
-- count(column?): Count rows or non-null values
-- min(column): Find minimum value
-- max(column): Find maximum value
-- median(column): Find median value
+NEVER say things like:
+- "Your Excel file contains X rows and Y columns"
+- "There are X numeric columns and Y text columns"
+- "Total cells: X"
+
+ALWAYS say things like:
+- "The data shows that [category] is the highest with [value]"
+- "Most items are in [category], accounting for [percentage]"
+- "There is a trend of [description] over time"
+- "[Column A] has the strongest relationship with [Column B]"
+- "The most common value in [column] is [value]"
+
+When the user asks about the data, analyze:
+- What are the most common values?
+- What are the highest and lowest values?
+- Are there any trends over time?
+- What categories dominate?
+- Are there any unusual patterns?
+- What relationships exist between columns?
+- What are the key distributions?
+
+If the user asks to create a chart, respond with a JSON chart configuration:
+CHART_REQUEST:{"chart_type":"bar","x_column":"ColumnName","y_column":"ColumnName","aggregation":"sum"}
+Supported chart types: bar, line, pie, scatter, doughnut, area
+Supported aggregations: sum, mean, count, min, max
+
+You have access to calculation tools:
+- sum(column): Calculate sum
+- average(column): Calculate average
+- count(column?): Count values
+- min(column): Find minimum
+- max(column): Find maximum
+- median(column): Find median
 - groupby(group_column, agg_column, agg_func): Group and aggregate
-- sort(column, ascending, limit): Sort and show top values
+- sort(column, ascending, limit): Sort values
 - filter(column, operator, value): Filter rows
-- top_n(column, n): Show top N values
+- top_n(column, n): Top N values
 - percentage(column, value): Calculate percentage
 - correlation(col1, col2): Calculate correlation
 - unique(column): Count unique values
-- value_counts(column): Show value distribution
-- missing(column?): Show missing data info
-- describe(column): Full column description
+- value_counts(column): Show distribution
+- missing(column?): Missing data info
+- describe(column): Full description
 
-When you determine a calculation is needed, include it in your response as:
+When a calculation is needed, include it as:
 CALC:tool_name:{"param1":"value1","param2":"value2"}
 
-The system will execute the calculation and append the result to the context."""
+The system will execute and append results."""
 
 
 def call_ai_api(

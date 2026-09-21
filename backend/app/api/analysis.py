@@ -488,21 +488,22 @@ def auto_analyze_dataset(
         full_stats=full_stats,
     )
 
-    system_prompt = """You are an expert data analyst. Provide a comprehensive, structured analysis of the dataset.
+    system_prompt = """You are an expert data analyst. Analyze the provided dataset and generate a natural-language summary.
 
-Format your analysis with clear sections using markdown:
-1. **Dataset Overview** - Summary of what the dataset contains
-2. **Key Statistics** - Important numbers for each column
-3. **Important Trends** - Notable patterns in the data
-4. **Highest/Lowest Values** - Key extremes
-5. **Missing Data Analysis** - What data is missing and implications
-6. **Outliers** - Any unusual values detected
-7. **Correlations** - Relationships between numeric columns
-8. **Key Insights** - Main takeaways (3-5 bullet points)
-9. **Areas Requiring Attention** - Data quality issues or anomalies
+RULES:
+1. Focus on WHAT THE DATA SHOWS, not on spreadsheet technicalities.
+2. Use specific numbers and values from the actual data.
+3. Respond in the same language as the data suggests.
+4. Do NOT mention row counts, column counts, or technical spreadsheet details.
 
-Use specific numbers from the data. Be factual. Do not invent information.
-Respond in the same language as the dataset context suggests (English or Bahasa Melayu)."""
+Structure your analysis with these sections using markdown:
+1. **Summary** - A brief 2-3 sentence natural language summary of what the data shows
+2. **Key Findings** - The most important patterns, comparisons, and values
+3. **Notable Patterns** - Trends, distributions, dominant categories
+4. **Values of Interest** - Highest/lowest, most common, unusual values
+5. **Recommendations** - What the data suggests or what to look into
+
+Keep it concise and focused on actionable insights."""
 
     context = f"{data_context}\n\nPlease provide a comprehensive analysis of this dataset."
     ai_response = call_ai_api(context, "Provide a comprehensive analysis of this dataset.", [], system_prompt=system_prompt, user_id=current_user.id, file_id=db_file.id)
